@@ -1,16 +1,14 @@
 <script>
 	import { v4 as uuidv4 } from 'uuid';
-	import { toast } from 'svelte-sonner';
+	import { toast } from 'svelte-french-toast';
 	import { goto } from '$app/navigation';
 	import { settings, user, config, modelfiles, models } from '$lib/stores';
 
 	import AdvancedParams from '$lib/components/chat/Settings/Advanced/AdvancedParams.svelte';
 	import { splitStream } from '$lib/utils';
-	import { onMount, tick, getContext } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { createModel } from '$lib/apis/ollama';
 	import { createNewModelfile, getModelfileByTagName, getModelfiles } from '$lib/apis/modelfiles';
-
-	const i18n = getContext('i18n');
 
 	let loading = false;
 
@@ -211,16 +209,12 @@ SYSTEM """${system}"""`.replace(/^\s*\n/gm, '');
 		success = false;
 	};
 
-	onMount(async () => {
+	onMount(() => {
 		window.addEventListener('message', async (event) => {
 			if (
-				![
-					'https://ollamahub.com',
-					'https://www.ollamahub.com',
-					'https://openwebui.com',
-					'https://www.openwebui.com',
-					'http://localhost:5173'
-				].includes(event.origin)
+				!['https://ollamahub.com', 'https://www.ollamahub.com', 'http://localhost:5173'].includes(
+					event.origin
+				)
 			)
 				return;
 			const modelfile = JSON.parse(event.data);
@@ -255,36 +249,11 @@ SYSTEM """${system}"""`.replace(/^\s*\n/gm, '');
 		if (window.opener ?? false) {
 			window.opener.postMessage('loaded', '*');
 		}
-
-		if (sessionStorage.modelfile) {
-			const modelfile = JSON.parse(sessionStorage.modelfile);
-			console.log(modelfile);
-			imageUrl = modelfile.imageUrl;
-			title = modelfile.title;
-			await tick();
-			tagName = modelfile.tagName;
-			desc = modelfile.desc;
-			content = modelfile.content;
-			suggestions =
-				modelfile.suggestionPrompts.length != 0
-					? modelfile.suggestionPrompts
-					: [
-							{
-								content: ''
-							}
-					  ];
-
-			for (const category of modelfile.categories) {
-				categories[category.toLowerCase()] = true;
-			}
-
-			sessionStorage.removeItem('modelfile');
-		}
 	});
 </script>
 
-<div class="min-h-screen max-h-[100dvh] w-full flex justify-center dark:text-white">
-	<div class=" flex flex-col justify-between w-full overflow-y-auto">
+<div class="min-h-screen w-full flex justify-center dark:text-white">
+	<div class=" py-2.5 flex flex-col justify-between w-full">
 		<div class="max-w-2xl mx-auto w-full px-3 md:px-0 my-10">
 			<input
 				bind:this={filesInputElement}
@@ -351,7 +320,7 @@ SYSTEM """${system}"""`.replace(/^\s*\n/gm, '');
 				}}
 			/>
 
-			<div class=" text-2xl font-semibold mb-6">{$i18n.t('My Modelfiles')}</div>
+			<div class=" text-2xl font-semibold mb-6">My Modelfiles</div>
 
 			<button
 				class="flex space-x-1"
@@ -373,7 +342,7 @@ SYSTEM """${system}"""`.replace(/^\s*\n/gm, '');
 						/>
 					</svg>
 				</div>
-				<div class=" self-center font-medium text-sm">{$i18n.t('Back')}</div>
+				<div class=" self-center font-medium text-sm">Back</div>
 			</button>
 			<hr class="my-3 dark:border-gray-700" />
 
@@ -420,12 +389,12 @@ SYSTEM """${system}"""`.replace(/^\s*\n/gm, '');
 
 				<div class="my-2 flex space-x-2">
 					<div class="flex-1">
-						<div class=" text-sm font-semibold mb-2">{$i18n.t('Name')}*</div>
+						<div class=" text-sm font-semibold mb-2">Name*</div>
 
 						<div>
 							<input
 								class="px-3 py-1.5 text-sm w-full bg-transparent border dark:border-gray-600 outline-none rounded-lg"
-								placeholder={$i18n.t('Name your modelfile')}
+								placeholder="Name your modelfile"
 								bind:value={title}
 								required
 							/>
@@ -433,12 +402,12 @@ SYSTEM """${system}"""`.replace(/^\s*\n/gm, '');
 					</div>
 
 					<div class="flex-1">
-						<div class=" text-sm font-semibold mb-2">{$i18n.t('Model Tag Name')}*</div>
+						<div class=" text-sm font-semibold mb-2">Model Tag Name*</div>
 
 						<div>
 							<input
 								class="px-3 py-1.5 text-sm w-full bg-transparent border dark:border-gray-600 outline-none rounded-lg"
-								placeholder={$i18n.t('Add a model tag name')}
+								placeholder="Add a model tag name"
 								bind:value={tagName}
 								required
 							/>
@@ -447,12 +416,12 @@ SYSTEM """${system}"""`.replace(/^\s*\n/gm, '');
 				</div>
 
 				<div class="my-2">
-					<div class=" text-sm font-semibold mb-2">{$i18n.t('Description')}*</div>
+					<div class=" text-sm font-semibold mb-2">Description*</div>
 
 					<div>
 						<input
 							class="px-3 py-1.5 text-sm w-full bg-transparent border dark:border-gray-600 outline-none rounded-lg"
-							placeholder={$i18n.t('Add a short description about what this modelfile does')}
+							placeholder="Add a short description about what this modelfile does"
 							bind:value={desc}
 							required
 						/>
@@ -461,7 +430,7 @@ SYSTEM """${system}"""`.replace(/^\s*\n/gm, '');
 
 				<div class="my-2">
 					<div class="flex w-full justify-between">
-						<div class=" self-center text-sm font-semibold">{$i18n.t('Modelfile')}</div>
+						<div class=" self-center text-sm font-semibold">Modelfile</div>
 
 						<button
 							class="p-1 px-3 text-xs flex rounded transition"
@@ -471,9 +440,9 @@ SYSTEM """${system}"""`.replace(/^\s*\n/gm, '');
 							}}
 						>
 							{#if raw}
-								<span class="ml-2 self-center"> {$i18n.t('Raw Format')} </span>
+								<span class="ml-2 self-center"> Raw Format </span>
 							{:else}
-								<span class="ml-2 self-center"> {$i18n.t('Builder Mode')} </span>
+								<span class="ml-2 self-center"> Builder Mode </span>
 							{/if}
 						</button>
 					</div>
@@ -482,7 +451,7 @@ SYSTEM """${system}"""`.replace(/^\s*\n/gm, '');
 
 					{#if raw}
 						<div class="mt-2">
-							<div class=" text-xs font-semibold mb-2">{$i18n.t('Content')}*</div>
+							<div class=" text-xs font-semibold mb-2">Content*</div>
 
 							<div>
 								<textarea
@@ -495,27 +464,26 @@ SYSTEM """${system}"""`.replace(/^\s*\n/gm, '');
 							</div>
 
 							<div class="text-xs text-gray-400 dark:text-gray-500">
-								{$i18n.t('Not sure what to write? Switch to')}
-								<button
+								Not sure what to write? Switch to <button
 									class="text-gray-500 dark:text-gray-300 font-medium cursor-pointer"
 									type="button"
 									on:click={() => {
 										raw = !raw;
-									}}>{$i18n.t('Builder Mode')}</button
+									}}>Builder Mode</button
 								>
 								or
 								<a
 									class=" text-gray-500 dark:text-gray-300 font-medium"
-									href="https://openwebui.com"
+									href="https://ollamahub.com"
 									target="_blank"
 								>
-									{$i18n.t('Click here to check other modelfiles.')}
+									Click here to check other modelfiles.
 								</a>
 							</div>
 						</div>
 					{:else}
 						<div class="my-2">
-							<div class=" text-xs font-semibold mb-2">{$i18n.t('From (Base Model)')}*</div>
+							<div class=" text-xs font-semibold mb-2">From (Base Model)*</div>
 
 							<div>
 								<input
@@ -527,17 +495,16 @@ SYSTEM """${system}"""`.replace(/^\s*\n/gm, '');
 							</div>
 
 							<div class="mt-1 text-xs text-gray-400 dark:text-gray-500">
-								{$i18n.t('To access the available model names for downloading,')}
-								<a
+								To access the available model names for downloading, <a
 									class=" text-gray-500 dark:text-gray-300 font-medium"
-									href="https://ollama.com/library"
-									target="_blank">{$i18n.t('click here.')}</a
+									href="https://ollama.ai/library"
+									target="_blank">click here.</a
 								>
 							</div>
 						</div>
 
 						<div class="my-1">
-							<div class=" text-xs font-semibold mb-2">{$i18n.t('System Prompt')}</div>
+							<div class=" text-xs font-semibold mb-2">System Prompt</div>
 
 							<div>
 								<textarea
@@ -550,9 +517,7 @@ SYSTEM """${system}"""`.replace(/^\s*\n/gm, '');
 						</div>
 
 						<div class="flex w-full justify-between">
-							<div class=" self-center text-sm font-semibold">
-								{$i18n.t('Modelfile Advanced Settings')}
-							</div>
+							<div class=" self-center text-sm font-semibold">Modelfile Advanced Settings</div>
 
 							<button
 								class="p-1 px-3 text-xs flex rounded transition"
@@ -562,16 +527,16 @@ SYSTEM """${system}"""`.replace(/^\s*\n/gm, '');
 								}}
 							>
 								{#if advanced}
-									<span class="ml-2 self-center">{$i18n.t('Custom')}</span>
+									<span class="ml-2 self-center"> Custom </span>
 								{:else}
-									<span class="ml-2 self-center">{$i18n.t('Default')}</span>
+									<span class="ml-2 self-center"> Default </span>
 								{/if}
 							</button>
 						</div>
 
 						{#if advanced}
 							<div class="my-2">
-								<div class=" text-xs font-semibold mb-2">{$i18n.t('Template')}</div>
+								<div class=" text-xs font-semibold mb-2">Template</div>
 
 								<div>
 									<textarea
@@ -584,7 +549,7 @@ SYSTEM """${system}"""`.replace(/^\s*\n/gm, '');
 							</div>
 
 							<div class="my-2">
-								<div class=" text-xs font-semibold mb-2">{$i18n.t('Parameters')}</div>
+								<div class=" text-xs font-semibold mb-2">Parameters</div>
 
 								<div>
 									<AdvancedParams bind:options />
@@ -596,7 +561,7 @@ SYSTEM """${system}"""`.replace(/^\s*\n/gm, '');
 
 				<div class="my-2">
 					<div class="flex w-full justify-between mb-2">
-						<div class=" self-center text-sm font-semibold">{$i18n.t('Prompt suggestions')}</div>
+						<div class=" self-center text-sm font-semibold">Prompt suggestions</div>
 
 						<button
 							class="p-1 px-3 text-xs flex rounded transition"
@@ -624,7 +589,7 @@ SYSTEM """${system}"""`.replace(/^\s*\n/gm, '');
 							<div class=" flex border dark:border-gray-600 rounded-lg">
 								<input
 									class="px-3 py-1.5 text-sm w-full bg-transparent outline-none border-r dark:border-gray-600"
-									placeholder={$i18n.t('Write a prompt suggestion (e.g. Who are you?)')}
+									placeholder="Write a prompt suggestion (e.g. Who are you?)"
 									bind:value={prompt.content}
 								/>
 
@@ -653,7 +618,7 @@ SYSTEM """${system}"""`.replace(/^\s*\n/gm, '');
 				</div>
 
 				<div class="my-2">
-					<div class=" text-sm font-semibold mb-2">{$i18n.t('Categories')}</div>
+					<div class=" text-sm font-semibold mb-2">Categories</div>
 
 					<div class="grid grid-cols-4">
 						{#each Object.keys(categories) as category}
@@ -667,7 +632,7 @@ SYSTEM """${system}"""`.replace(/^\s*\n/gm, '');
 
 				{#if pullProgress !== null}
 					<div class="my-2">
-						<div class=" text-sm font-semibold mb-2">{$i18n.t('Pull Progress')}</div>
+						<div class=" text-sm font-semibold mb-2">Pull Progress</div>
 						<div class="w-full rounded-full dark:bg-gray-800">
 							<div
 								class="dark:bg-gray-600 bg-gray-500 text-xs font-medium text-gray-100 text-center p-0.5 leading-none rounded-full"
@@ -690,7 +655,7 @@ SYSTEM """${system}"""`.replace(/^\s*\n/gm, '');
 						type="submit"
 						disabled={loading}
 					>
-						<div class=" self-center font-medium">{$i18n.t('Save & Create')}</div>
+						<div class=" self-center font-medium">Save & Create</div>
 
 						{#if loading}
 							<div class="ml-1.5 self-center">

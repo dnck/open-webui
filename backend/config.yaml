@@ -1,0 +1,47 @@
+---
+app:
+  name: MyApp
+  version: "1.0"
+db:
+  host: localhost
+  user: myuser
+  password: secret_password
+  port: 5432
+  database: mydatabase
+email:
+  sender: myemail@example.com
+  recipient: receiver@example.com
+  smtp_server: smtp.example.com
+  smtp_port: 587
+
+environment: "dev"
+data_dir: "/home/dnck/frontend/ollama-webui/backend/data"
+upload_dir: "/home/dnck/frontend/ollama-webui/backend/data/uploads"
+front_build_dir: "/home/dnck/frontend/ollama-webui/build"
+
+enable_signup: true
+# dunno?
+#default_models:
+default_prompt_suggestions:
+  - title: Help Oncall Engineers
+    content: Help oncall engineers respond to an alert about apps deployed in kubernetes
+  - title: Help Developers
+    content: Help developers write infrastructure as code
+  - title: Teach me how to write a golang cli
+    content: Show me how to create a cli application in golang
+  - title: Suggest ways to improve deployment pipeline
+    content: Show me a github action  that builds an image based on a Dockerfile
+
+ollama_api_base_url: "http://localhost:11434/api"
+openai_api_key: ""
+openai_api_base_url: "https://api.openai.com/v1"
+
+webui_version: "v1.0.0-alpha.92"
+webui_auth: true
+webui_jwt_secret_key: "t0p-s3cr3t"
+webui_secret_key: "t0p-s3cr3t"
+
+chroma_data_path: "/home/dnck/frontend/ollama-webui/backend/data/vector_db"
+embed_model: "all-MiniLM-L6-v2"
+
+whisper_model_name: "base"

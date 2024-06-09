@@ -3,10 +3,8 @@
 
 	import { documents } from '$lib/stores';
 	import { removeFirstHashWord, isValidHttpUrl } from '$lib/utils';
-	import { tick, getContext } from 'svelte';
-	import { toast } from 'svelte-sonner';
-
-	const i18n = getContext('i18n');
+	import { tick } from 'svelte';
+	import toast from 'svelte-french-toast';
 
 	export let prompt = '';
 
@@ -90,17 +88,17 @@
 </script>
 
 {#if filteredItems.length > 0 || prompt.split(' ')?.at(0)?.substring(1).startsWith('http')}
-	<div class="md:px-2 mb-3 text-left w-full absolute bottom-0 left-0 right-0">
-		<div class="flex w-full px-2">
-			<div class=" bg-gray-100 dark:bg-gray-700 w-10 rounded-l-xl text-center">
+	<div class="md:px-2 mb-3 text-left w-full">
+		<div class="flex w-full rounded-lg border border-gray-100 dark:border-gray-700">
+			<div class=" bg-gray-100 dark:bg-gray-700 w-10 rounded-l-lg text-center">
 				<div class=" text-lg font-semibold mt-2">#</div>
 			</div>
 
-			<div class="max-h-60 flex flex-col w-full rounded-r-xl bg-white">
-				<div class="m-1 overflow-y-auto p-1 rounded-r-xl space-y-0.5">
+			<div class="max-h-60 flex flex-col w-full rounded-r-lg">
+				<div class=" overflow-y-auto bg-white p-2 rounded-tr-lg space-y-0.5">
 					{#each filteredItems as doc, docIdx}
 						<button
-							class=" px-3 py-1.5 rounded-xl w-full text-left {docIdx === selectedIdx
+							class=" px-3 py-1.5 rounded-lg w-full text-left {docIdx === selectedIdx
 								? ' bg-gray-100 selected-command-option-button'
 								: ''}"
 							type="button"
@@ -119,7 +117,7 @@
 									{doc?.title ?? `#${doc.name}`}
 								</div>
 
-								<div class=" text-xs text-gray-600 line-clamp-1">{$i18n.t('Collection')}</div>
+								<div class=" text-xs text-gray-600 line-clamp-1">Collection</div>
 							{:else}
 								<div class=" font-medium text-black line-clamp-1">
 									#{doc.name} ({doc.filename})
@@ -134,7 +132,7 @@
 
 					{#if prompt.split(' ')?.at(0)?.substring(1).startsWith('http')}
 						<button
-							class="px-3 py-1.5 rounded-xl w-full text-left bg-gray-100 selected-command-option-button"
+							class="px-3 py-1.5 rounded-lg w-full text-left bg-gray-100 selected-command-option-button"
 							type="button"
 							on:click={() => {
 								const url = prompt.split(' ')?.at(0)?.substring(1);
@@ -142,9 +140,7 @@
 									confirmSelectWeb(url);
 								} else {
 									toast.error(
-										$i18n.t(
-											'Oops! Looks like the URL is invalid. Please double-check and try again.'
-										)
+										'Oops! Looks like the URL is invalid. Please double-check and try again.'
 									);
 								}
 							}}
@@ -153,7 +149,7 @@
 								{prompt.split(' ')?.at(0)?.substring(1)}
 							</div>
 
-							<div class=" text-xs text-gray-600 line-clamp-1">{$i18n.t('Web')}</div>
+							<div class=" text-xs text-gray-600 line-clamp-1">Web</div>
 						</button>
 					{/if}
 				</div>

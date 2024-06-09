@@ -1,35 +1,31 @@
 <script lang="ts">
-	import { toast } from 'svelte-sonner';
+	import toast from 'svelte-french-toast';
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 
-	import { onMount, getContext } from 'svelte';
-	import { WEBUI_NAME, prompts } from '$lib/stores';
+	import { onMount } from 'svelte';
+	import { prompts } from '$lib/stores';
 	import { createNewPrompt, deletePromptByCommand, getPrompts } from '$lib/apis/prompts';
 	import { error } from '@sveltejs/kit';
-	import { goto } from '$app/navigation';
-
-	const i18n = getContext('i18n');
 
 	let importFiles = '';
 	let query = '';
-	let promptsImportInputElement: HTMLInputElement;
+
 	const sharePrompt = async (prompt) => {
-		toast.success($i18n.t('Redirecting you to OpenWebUI Community'));
+		toast.success('This feature is disabled!');
+		// const url = 'https://ollamahub.com';
 
-		const url = 'https://openwebui.com';
-
-		const tab = await window.open(`${url}/prompts/create`, '_blank');
-		window.addEventListener(
-			'message',
-			(event) => {
-				if (event.origin !== url) return;
-				if (event.data === 'loaded') {
-					tab.postMessage(JSON.stringify(prompt), '*');
-				}
-			},
-			false
-		);
+		// const tab = await window.open(`${url}/prompts/create`, '_blank');
+		// window.addEventListener(
+		// 	'message',
+		// 	(event) => {
+		// 		if (event.origin !== url) return;
+		// 		if (event.data === 'loaded') {
+		// 			tab.postMessage(JSON.stringify(prompt), '*');
+		// 		}
+		// 	},
+		// 	false
+		// );
 	};
 
 	const deletePrompt = async (command) => {
@@ -38,17 +34,11 @@
 	};
 </script>
 
-<svelte:head>
-	<title>
-		{$i18n.t('Prompts')} | {$WEBUI_NAME}
-	</title>
-</svelte:head>
-
-<div class="min-h-screen max-h-[100dvh] w-full flex justify-center dark:text-white">
-	<div class="flex flex-col justify-between w-full overflow-y-auto">
+<div class="min-h-screen w-full flex justify-center dark:text-white">
+	<div class=" py-2.5 flex flex-col justify-between w-full">
 		<div class="max-w-2xl mx-auto w-full px-3 md:px-0 my-10">
 			<div class="mb-6 flex justify-between items-center">
-				<div class=" text-2xl font-semibold self-center">{$i18n.t('My Prompts')}</div>
+				<div class=" text-2xl font-semibold self-center">My Prompts</div>
 			</div>
 
 			<div class=" flex w-full space-x-2">
@@ -70,13 +60,13 @@
 					<input
 						class=" w-full text-sm pr-4 py-1 rounded-r-xl outline-none bg-transparent"
 						bind:value={query}
-						placeholder={$i18n.t('Search Prompts')}
+						placeholder="Search Prompt"
 					/>
 				</div>
 
 				<div>
 					<a
-						class=" px-2 py-2 rounded-xl border border-gray-200 dark:border-gray-600 dark:border-0 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 transition font-medium text-sm flex items-center space-x-1"
+						class=" px-2 py-2 rounded-xl border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 transition font-medium text-sm flex items-center space-x-1"
 						href="/prompts/create"
 					>
 						<svg
@@ -92,13 +82,13 @@
 					</a>
 				</div>
 			</div>
-			<hr class=" dark:border-gray-700 my-2.5" />
 
-			<div class="my-3 mb-5">
+			{#if $prompts.length === 0}
+				<div />
+			{:else}
 				{#each $prompts.filter((p) => query === '' || p.command.includes(query)) as prompt}
-					<div
-						class=" flex space-x-4 cursor-pointer w-full px-3 py-2 dark:hover:bg-white/5 hover:bg-black/5 rounded-xl"
-					>
+					<hr class=" dark:border-gray-700 my-2.5" />
+					<div class=" flex space-x-4 cursor-pointer w-full mb-3">
 						<div class=" flex flex-1 space-x-4 cursor-pointer w-full">
 							<a href={`/prompts/edit?command=${encodeURIComponent(prompt.command)}`}>
 								<div class=" flex-1 self-center pl-5">
@@ -111,7 +101,7 @@
 						</div>
 						<div class="flex flex-row space-x-1 self-center">
 							<a
-								class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
+								class="self-center w-fit text-sm px-2 py-2 border dark:border-gray-600 rounded-xl"
 								type="button"
 								href={`/prompts/edit?command=${encodeURIComponent(prompt.command)}`}
 							>
@@ -132,32 +122,7 @@
 							</a>
 
 							<button
-								class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
-								type="button"
-								on:click={() => {
-									// console.log(modelfile);
-									sessionStorage.prompt = JSON.stringify(prompt);
-									goto('/prompts/create');
-								}}
-							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke-width="1.5"
-									stroke="currentColor"
-									class="w-4 h-4"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75"
-									/>
-								</svg>
-							</button>
-
-							<button
-								class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
+								class="self-center w-fit text-sm px-2 py-2 border dark:border-gray-600 rounded-xl"
 								type="button"
 								on:click={() => {
 									sharePrompt(prompt);
@@ -180,7 +145,7 @@
 							</button>
 
 							<button
-								class="self-center w-fit text-sm px-2 py-2 dark:text-gray-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-xl"
+								class="self-center w-fit text-sm px-2 py-2 border dark:border-gray-600 rounded-xl"
 								type="button"
 								on:click={() => {
 									deletePrompt(prompt.command);
@@ -204,13 +169,14 @@
 						</div>
 					</div>
 				{/each}
-			</div>
+			{/if}
 
-			<div class=" flex justify-end w-full mb-3">
+			<hr class=" dark:border-gray-700 my-2.5" />
+
+			<div class=" flex justify-between w-full mb-3">
 				<div class="flex space-x-2">
 					<input
 						id="prompts-import-input"
-						bind:this={promptsImportInputElement}
 						bind:files={importFiles}
 						type="file"
 						accept=".json"
@@ -243,12 +209,12 @@
 					/>
 
 					<button
-						class="flex text-xs items-center space-x-1 px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-200 transition"
-						on:click={() => {
-							promptsImportInputElement.click();
+						class="self-center w-fit text-sm px-3 py-1 border dark:border-gray-600 rounded-xl flex"
+						on:click={async () => {
+							document.getElementById('prompts-import-input')?.click();
 						}}
 					>
-						<div class=" self-center mr-2 font-medium">{$i18n.t('Import Prompts')}</div>
+						<div class=" self-center mr-2 font-medium">Import Prompts</div>
 
 						<div class=" self-center">
 							<svg
@@ -267,16 +233,16 @@
 					</button>
 
 					<button
-						class="flex text-xs items-center space-x-1 px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-200 transition"
+						class="self-center w-fit text-sm px-3 py-1 border dark:border-gray-600 rounded-xl flex"
 						on:click={async () => {
-							// promptsImportInputElement.click();
+							// document.getElementById('modelfiles-import-input')?.click();
 							let blob = new Blob([JSON.stringify($prompts)], {
 								type: 'application/json'
 							});
 							saveAs(blob, `prompts-export-${Date.now()}.json`);
 						}}
 					>
-						<div class=" self-center mr-2 font-medium">{$i18n.t('Export Prompts')}</div>
+						<div class=" self-center mr-2 font-medium">Export Prompts</div>
 
 						<div class=" self-center">
 							<svg
@@ -304,12 +270,12 @@
 				</div>
 			</div>
 
-			<div class=" my-16">
-				<div class=" text-2xl font-semibold mb-3">{$i18n.t('Made by OpenWebUI Community')}</div>
+			<!-- <div class=" my-16">
+				<div class=" text-2xl font-semibold mb-6">Made by OllamaHub Community</div>
 
 				<a
-					class=" flex space-x-4 cursor-pointer w-full mb-3 px-3 py-2"
-					href="https://openwebui.com/?type=prompts"
+					class=" flex space-x-4 cursor-pointer w-full mb-3"
+					href="https://ollamahub.com/?type=prompts"
 					target="_blank"
 				>
 					<div class=" self-center w-10">
@@ -332,11 +298,11 @@
 					</div>
 
 					<div class=" self-center">
-						<div class=" font-bold">{$i18n.t('Discover a prompt')}</div>
-						<div class=" text-sm">{$i18n.t('Discover, download, and explore custom prompts')}</div>
+						<div class=" font-bold">Discover a prompt</div>
+						<div class=" text-sm">Discover, download, and explore custom Prompts</div>
 					</div>
 				</a>
-			</div>
+			</div> -->
 		</div>
 	</div>
 </div>

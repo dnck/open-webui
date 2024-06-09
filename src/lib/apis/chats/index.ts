@@ -272,7 +272,7 @@ export const deleteChatById = async (token: string, id: string) => {
 			return json;
 		})
 		.catch((err) => {
-			error = err.detail;
+			error = err;
 
 			console.log(err);
 			return null;
@@ -439,7 +439,7 @@ export const deleteAllChats = async (token: string) => {
 			return json;
 		})
 		.catch((err) => {
-			error = err.detail;
+			error = err;
 
 			console.log(err);
 			return null;

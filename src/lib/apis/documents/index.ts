@@ -5,8 +5,7 @@ export const createNewDoc = async (
 	collection_name: string,
 	filename: string,
 	name: string,
-	title: string,
-	content: object | null = null
+	title: string
 ) => {
 	let error = null;
 
@@ -21,8 +20,7 @@ export const createNewDoc = async (
 			collection_name: collection_name,
 			filename: filename,
 			name: name,
-			title: title,
-			...(content ? { content: JSON.stringify(content) } : {})
+			title: title
 		})
 	})
 		.then(async (res) => {

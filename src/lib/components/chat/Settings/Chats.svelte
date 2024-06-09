@@ -13,18 +13,15 @@
 		getChatList
 	} from '$lib/apis/chats';
 	import { getImportOrigin, convertOpenAIChats } from '$lib/utils';
-	import { onMount, getContext } from 'svelte';
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { toast } from 'svelte-sonner';
-
-	const i18n = getContext('i18n');
+	import toast from 'svelte-french-toast';
 
 	export let saveSettings: Function;
 	// Chats
 	let saveChatHistory = true;
 	let importFiles;
 	let showDeleteConfirm = false;
-	let chatImportInputElement: HTMLInputElement;
 
 	$: if (importFiles) {
 		console.log(importFiles);
@@ -78,9 +75,7 @@
 
 	const deleteChats = async () => {
 		await goto('/');
-		await deleteAllChats(localStorage.token).catch((error) => {
-			toast.error(error);
-		});
+		await deleteAllChats(localStorage.token);
 		await chats.set(await getChatList(localStorage.token));
 	};
 
@@ -101,13 +96,13 @@
 	});
 </script>
 
-<div class="flex flex-col h-full justify-between space-y-3 text-sm max-h-[22rem]">
+<div class="flex flex-col h-full justify-between space-y-3 text-sm">
 	<div class=" space-y-2">
 		<div
 			class="flex flex-col justify-between rounded-md items-center py-2 px-3.5 w-full transition"
 		>
 			<div class="flex w-full justify-between">
-				<div class=" self-center text-sm font-medium">{$i18n.t('Chat History')}</div>
+				<div class=" self-center text-sm font-medium">Chat History</div>
 
 				<button
 					class="p-1 px-3 text-xs flex rounded transition"
@@ -131,7 +126,7 @@
 							/>
 						</svg>
 
-						<span class="ml-2 self-center"> {$i18n.t('On')} </span>
+						<span class="ml-2 self-center"> On </span>
 					{:else}
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
@@ -149,31 +144,24 @@
 							/>
 						</svg>
 
-						<span class="ml-2 self-center">{$i18n.t('Off')}</span>
+						<span class="ml-2 self-center">Off</span>
 					{/if}
 				</button>
 			</div>
 
 			<div class="text-xs text-left w-full font-medium mt-0.5">
-				{$i18n.t('This setting does not sync across browsers or devices.')}
+				This setting does not sync across browsers or devices.
 			</div>
 		</div>
 
 		<hr class=" dark:border-gray-700" />
 
 		<div class="flex flex-col">
-			<input
-				id="chat-import-input"
-				bind:this={chatImportInputElement}
-				bind:files={importFiles}
-				type="file"
-				accept=".json"
-				hidden
-			/>
+			<input id="chat-import-input" bind:files={importFiles} type="file" accept=".json" hidden />
 			<button
 				class=" flex rounded-md py-2 px-3.5 w-full hover:bg-gray-200 dark:hover:bg-gray-800 transition"
 				on:click={() => {
-					chatImportInputElement.click();
+					document.getElementById('chat-import-input').click();
 				}}
 			>
 				<div class=" self-center mr-3">
@@ -190,7 +178,7 @@
 						/>
 					</svg>
 				</div>
-				<div class=" self-center text-sm font-medium">{$i18n.t('Import Chats')}</div>
+				<div class=" self-center text-sm font-medium">Import Chats</div>
 			</button>
 			<button
 				class=" flex rounded-md py-2 px-3.5 w-full hover:bg-gray-200 dark:hover:bg-gray-800 transition"
@@ -212,7 +200,7 @@
 						/>
 					</svg>
 				</div>
-				<div class=" self-center text-sm font-medium">{$i18n.t('Export Chats')}</div>
+				<div class=" self-center text-sm font-medium">Export Chats</div>
 			</button>
 		</div>
 
@@ -234,7 +222,7 @@
 							clip-rule="evenodd"
 						/>
 					</svg>
-					<span>{$i18n.t('Are you sure?')}</span>
+					<span>Are you sure?</span>
 				</div>
 
 				<div class="flex space-x-1.5 items-center">
@@ -298,7 +286,7 @@
 						/>
 					</svg>
 				</div>
-				<div class=" self-center text-sm font-medium">{$i18n.t('Delete Chats')}</div>
+				<div class=" self-center text-sm font-medium">Delete Chats</div>
 			</button>
 		{/if}
 
@@ -326,9 +314,7 @@
 						/>
 					</svg>
 				</div>
-				<div class=" self-center text-sm font-medium">
-					{$i18n.t('Export All Chats (All Users)')}
-				</div>
+				<div class=" self-center text-sm font-medium">Export All Chats (All Users)</div>
 			</button>
 
 			<hr class=" dark:border-gray-700" />
@@ -342,7 +328,7 @@
 					});
 
 					if (res) {
-						toast.success($i18n.t('Success'));
+						toast.success('Success');
 					}
 				}}
 			>
@@ -360,7 +346,7 @@
 						/>
 					</svg>
 				</div>
-				<div class=" self-center text-sm font-medium">{$i18n.t('Reset Vector Storage')}</div>
+				<div class=" self-center text-sm font-medium">Reset Vector Storage</div>
 			</button>
 		{/if}
 	</div>

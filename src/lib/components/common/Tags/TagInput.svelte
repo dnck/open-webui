@@ -1,8 +1,6 @@
 <script lang="ts">
-	import { createEventDispatcher, getContext } from 'svelte';
+	import { createEventDispatcher } from 'svelte';
 	const dispatch = createEventDispatcher();
-
-	const i18n = getContext('i18n');
 
 	let showTagInput = false;
 	let tagName = '';
@@ -11,6 +9,12 @@
 <div class="flex space-x-1 pl-1.5">
 	{#if showTagInput}
 		<div class="flex items-center">
+			<input
+				bind:value={tagName}
+				class=" cursor-pointer self-center text-xs h-fit bg-transparent outline-none line-clamp-1 w-[4rem]"
+				placeholder="Add a tag"
+			/>
+
 			<button
 				type="button"
 				on:click={() => {
@@ -32,11 +36,6 @@
 					/>
 				</svg>
 			</button>
-			<input
-				bind:value={tagName}
-				class=" pl-2 cursor-pointer self-center text-xs h-fit bg-transparent outline-none line-clamp-1 w-[8rem]"
-				placeholder={$i18n.t('Add a tag')}
-			/>
 		</div>
 
 		<!-- TODO: Tag Suggestions -->

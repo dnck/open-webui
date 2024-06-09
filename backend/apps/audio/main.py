@@ -1,4 +1,3 @@
-import os
 from fastapi import (
     FastAPI,
     Request,
@@ -21,7 +20,7 @@ from utils.utils import (
 )
 from utils.misc import calculate_sha256
 
-from config import CACHE_DIR, UPLOAD_DIR, WHISPER_MODEL, WHISPER_MODEL_DIR
+from config import CACHE_DIR, UPLOAD_DIR, WHISPER_MODEL_NAME
 
 app = FastAPI()
 app.add_middleware(
@@ -54,11 +53,12 @@ def transcribe(
             f.write(contents)
             f.close()
 
+        model_name = WHISPER_MODEL_NAME
         model = WhisperModel(
-            WHISPER_MODEL,
-            device="auto",
+            model_name,
+            device="cpu",
             compute_type="int8",
-            download_root=WHISPER_MODEL_DIR,
+            download_root=f"{CACHE_DIR}/whisper/models",
         )
 
         segments, info = model.transcribe(file_path, beam_size=5)

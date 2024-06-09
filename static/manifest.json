@@ -1,6 +1,6 @@
 {
-	"name": "Open WebUI",
-	"short_name": "Open WebUI",
+	"name": "Ollama Web UI",
+	"short_name": "Ollama",
 	"start_url": "/",
 	"display": "standalone",
 	"background_color": "#343541",

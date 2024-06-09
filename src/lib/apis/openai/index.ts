@@ -1,9 +1,9 @@
 import { OPENAI_API_BASE_URL } from '$lib/constants';
 
-export const getOpenAIUrls = async (token: string = '') => {
+export const getOpenAIUrl = async (token: string = '') => {
 	let error = null;
 
-	const res = await fetch(`${OPENAI_API_BASE_URL}/urls`, {
+	const res = await fetch(`${OPENAI_API_BASE_URL}/url`, {
 		method: 'GET',
 		headers: {
 			Accept: 'application/json',
@@ -29,13 +29,13 @@ export const getOpenAIUrls = async (token: string = '') => {
 		throw error;
 	}
 
-	return res.OPENAI_API_BASE_URLS;
+	return res.OPENAI_API_BASE_URL;
 };
 
-export const updateOpenAIUrls = async (token: string = '', urls: string[]) => {
+export const updateOpenAIUrl = async (token: string = '', url: string) => {
 	let error = null;
 
-	const res = await fetch(`${OPENAI_API_BASE_URL}/urls/update`, {
+	const res = await fetch(`${OPENAI_API_BASE_URL}/url/update`, {
 		method: 'POST',
 		headers: {
 			Accept: 'application/json',
@@ -43,7 +43,7 @@ export const updateOpenAIUrls = async (token: string = '', urls: string[]) => {
 			...(token && { authorization: `Bearer ${token}` })
 		},
 		body: JSON.stringify({
-			urls: urls
+			url: url
 		})
 	})
 		.then(async (res) => {
@@ -64,13 +64,13 @@ export const updateOpenAIUrls = async (token: string = '', urls: string[]) => {
 		throw error;
 	}
 
-	return res.OPENAI_API_BASE_URLS;
+	return res.OPENAI_API_BASE_URL;
 };
 
-export const getOpenAIKeys = async (token: string = '') => {
+export const getOpenAIKey = async (token: string = '') => {
 	let error = null;
 
-	const res = await fetch(`${OPENAI_API_BASE_URL}/keys`, {
+	const res = await fetch(`${OPENAI_API_BASE_URL}/key`, {
 		method: 'GET',
 		headers: {
 			Accept: 'application/json',
@@ -96,13 +96,13 @@ export const getOpenAIKeys = async (token: string = '') => {
 		throw error;
 	}
 
-	return res.OPENAI_API_KEYS;
+	return res.OPENAI_API_KEY;
 };
 
-export const updateOpenAIKeys = async (token: string = '', keys: string[]) => {
+export const updateOpenAIKey = async (token: string = '', key: string) => {
 	let error = null;
 
-	const res = await fetch(`${OPENAI_API_BASE_URL}/keys/update`, {
+	const res = await fetch(`${OPENAI_API_BASE_URL}/key/update`, {
 		method: 'POST',
 		headers: {
 			Accept: 'application/json',
@@ -110,7 +110,7 @@ export const updateOpenAIKeys = async (token: string = '', keys: string[]) => {
 			...(token && { authorization: `Bearer ${token}` })
 		},
 		body: JSON.stringify({
-			keys: keys
+			key: key
 		})
 	})
 		.then(async (res) => {
@@ -131,7 +131,7 @@ export const updateOpenAIKeys = async (token: string = '', keys: string[]) => {
 		throw error;
 	}
 
-	return res.OPENAI_API_KEYS;
+	return res.OPENAI_API_KEY;
 };
 
 export const getOpenAIModels = async (token: string = '') => {
@@ -150,6 +150,7 @@ export const getOpenAIModels = async (token: string = '') => {
 			return res.json();
 		})
 		.catch((err) => {
+			console.log(err);
 			error = `OpenAI: ${err?.error?.message ?? 'Network Problem'}`;
 			return [];
 		});
@@ -162,7 +163,7 @@ export const getOpenAIModels = async (token: string = '') => {
 
 	return models
 		? models
-				.map((model) => ({ id: model.id, name: model.name ?? model.id, external: true }))
+				.map((model) => ({ name: model.id, external: true }))
 				.sort((a, b) => {
 					return a.name.localeCompare(b.name);
 				})
@@ -199,21 +200,17 @@ export const getOpenAIModelsDirect = async (
 	const models = Array.isArray(res) ? res : res?.data ?? null;
 
 	return models
-		.map((model) => ({ id: model.id, name: model.name ?? model.id, external: true }))
+		.map((model) => ({ name: model.id, external: true }))
 		.filter((model) => (base_url.includes('openai') ? model.name.includes('gpt') : true))
 		.sort((a, b) => {
 			return a.name.localeCompare(b.name);
 		});
 };
 
-export const generateOpenAIChatCompletion = async (
-	token: string = '',
-	body: object,
-	url: string = OPENAI_API_BASE_URL
-) => {
+export const generateOpenAIChatCompletion = async (token: string = '', body: object) => {
 	let error = null;
 
-	const res = await fetch(`${url}/chat/completions`, {
+	const res = await fetch(`${OPENAI_API_BASE_URL}/chat/completions`, {
 		method: 'POST',
 		headers: {
 			Authorization: `Bearer ${token}`,

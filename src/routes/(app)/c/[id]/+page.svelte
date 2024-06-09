@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { v4 as uuidv4 } from 'uuid';
-	import { toast } from 'svelte-sonner';
+	import toast from 'svelte-french-toast';
 
-	import { onMount, tick, getContext } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 
@@ -14,12 +14,11 @@
 		chats,
 		chatId,
 		config,
-		WEBUI_NAME,
 		tags as _tags
 	} from '$lib/stores';
 	import { copyToClipboard, splitStream, convertMessagesToHistory } from '$lib/utils';
 
-	import { generateChatCompletion, generateTitle, cancelChatCompletion } from '$lib/apis/ollama';
+	import { generateChatCompletion, generateTitle } from '$lib/apis/ollama';
 	import {
 		addTagById,
 		createNewChat,
@@ -38,16 +37,13 @@
 	import ModelSelector from '$lib/components/chat/ModelSelector.svelte';
 	import Navbar from '$lib/components/layout/Navbar.svelte';
 	import { RAGTemplate } from '$lib/utils/rag';
-	import { LITELLM_API_BASE_URL, OPENAI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
-
-	const i18n = getContext('i18n');
 
 	let loaded = false;
 
 	let stopResponseFlag = false;
 	let autoScroll = true;
 	let processing = '';
-	let messagesContainerElement: HTMLDivElement;
+
 	let currentRequestId = null;
 
 	// let chatId = $page.params.id;
@@ -102,10 +98,6 @@
 			if (await loadChat()) {
 				await tick();
 				loaded = true;
-
-				window.setTimeout(() => scrollToBottom(), 0);
-				const chatInput = document.getElementById('chat-textarea');
-				chatInput?.focus();
 			} else {
 				await goto('/');
 			}
@@ -161,12 +153,6 @@
 		}
 	};
 
-	const scrollToBottom = () => {
-		if (messagesContainerElement) {
-			messagesContainerElement.scrollTop = messagesContainerElement.scrollHeight;
-		}
-	};
-
 	//////////////////////////
 	// Ollama functions
 	//////////////////////////
@@ -175,7 +161,7 @@
 		console.log('submitPrompt', $chatId);
 
 		if (selectedModels.includes('')) {
-			toast.error($i18n.t('Model not selected'));
+			toast.error('Model not selected');
 		} else if (messages.length != 0 && messages.at(-1).done != true) {
 			// Response not done
 			console.log('wait');
@@ -221,7 +207,7 @@
 				if ($settings.saveChatHistory ?? true) {
 					chat = await createNewChat(localStorage.token, {
 						id: $chatId,
-						title: $i18n.t('New Chat'),
+						title: 'New Chat',
 						models: selectedModels,
 						system: $settings.system ?? undefined,
 						options: {
@@ -246,45 +232,66 @@
 			await sendPrompt(userPrompt, userMessageId);
 		}
 	};
+
 	const sendPrompt = async (prompt, parentId) => {
 		const _chatId = JSON.parse(JSON.stringify($chatId));
 
+		const docs = messages
+			.filter((message) => message?.files ?? null)
+			.map((message) =>
+				message.files.filter((item) => item.type === 'doc' || item.type === 'collection')
+			)
+			.flat(1);
+
+		console.log(docs);
+		if (docs.length > 0) {
+			processing = 'Reading';
+			const query = history.messages[parentId].content;
+
+			let relevantContexts = await Promise.all(
+				docs.map(async (doc) => {
+					if (doc.type === 'collection') {
+						return await queryCollection(localStorage.token, doc.collection_names, query, 4).catch(
+							(error) => {
+								console.log(error);
+								return null;
+							}
+						);
+					} else {
+						return await queryDoc(localStorage.token, doc.collection_name, query, 4).catch(
+							(error) => {
+								console.log(error);
+								return null;
+							}
+						);
+					}
+				})
+			);
+			relevantContexts = relevantContexts.filter((context) => context);
+
+			const contextString = relevantContexts.reduce((a, context, i, arr) => {
+				return `${a}${context.documents.join(' ')}\n`;
+			}, '');
+
+			console.log(contextString);
+
+			history.messages[parentId].raContent = RAGTemplate(contextString, query);
+			history.messages[parentId].contexts = relevantContexts;
+			await tick();
+			processing = '';
+		}
+
 		await Promise.all(
-			selectedModels.map(async (modelId) => {
-				const model = $models.filter((m) => m.id === modelId).at(0);
+			selectedModels.map(async (model) => {
+				console.log(model);
+				const modelTag = $models.filter((m) => m.name === model).at(0);
 
-				if (model) {
-					// Create response message
-					let responseMessageId = uuidv4();
-					let responseMessage = {
-						parentId: parentId,
-						id: responseMessageId,
-						childrenIds: [],
-						role: 'assistant',
-						content: '',
-						model: model.id,
-						timestamp: Math.floor(Date.now() / 1000) // Unix epoch
-					};
-
-					// Add message to history and Set currentId to messageId
-					history.messages[responseMessageId] = responseMessage;
-					history.currentId = responseMessageId;
-
-					// Append messageId to childrenIds of parent message
-					if (parentId !== null) {
-						history.messages[parentId].childrenIds = [
-							...history.messages[parentId].childrenIds,
-							responseMessageId
-						];
-					}
-
-					if (model?.external) {
-						await sendPromptOpenAI(model, prompt, responseMessageId, _chatId);
-					} else if (model) {
-						await sendPromptOllama(model, prompt, responseMessageId, _chatId);
-					}
+				if (modelTag?.external) {
+					await sendPromptOpenAI(model, prompt, parentId, _chatId);
+				} else if (modelTag) {
+					await sendPromptOllama(model, prompt, parentId, _chatId);
 				} else {
-					toast.error($i18n.t(`Model {{modelId}} not found`, { modelId }));
+					toast.error(`Model ${model} not found`);
 				}
 			})
 		);
@@ -292,15 +299,36 @@
 		await chats.set(await getChatList(localStorage.token));
 	};
 
-	const sendPromptOllama = async (model, userPrompt, responseMessageId, _chatId) => {
-		model = model.id;
-		const responseMessage = history.messages[responseMessageId];
+	const sendPromptOllama = async (model, userPrompt, parentId, _chatId) => {
+		// Create response message
+		let responseMessageId = uuidv4();
+		let responseMessage = {
+			parentId: parentId,
+			id: responseMessageId,
+			childrenIds: [],
+			role: 'assistant',
+			content: '',
+			model: model,
+			timestamp: Math.floor(Date.now() / 1000) // Unix epoch
+		};
+
+		// Add message to history and Set currentId to messageId
+		history.messages[responseMessageId] = responseMessage;
+		history.currentId = responseMessageId;
+
+		// Append messageId to childrenIds of parent message
+		if (parentId !== null) {
+			history.messages[parentId].childrenIds = [
+				...history.messages[parentId].childrenIds,
+				responseMessageId
+			];
+		}
 
 		// Wait until history/message have been updated
 		await tick();
 
 		// Scroll down
-		scrollToBottom();
+		window.scrollTo({ top: document.body.scrollHeight });
 
 		const messagesBody = [
 			$settings.system
@@ -312,25 +340,15 @@
 			...messages
 		]
 			.filter((message) => message)
-			.map((message, idx, arr) => {
-				// Prepare the base message object
-				const baseMessage = {
-					role: message.role,
-					content: arr.length - 2 !== idx ? message.content : message?.raContent ?? message.content
-				};
-
-				// Extract and format image URLs if any exist
-				const imageUrls = message.files
-					?.filter((file) => file.type === 'image')
-					.map((file) => file.url.slice(file.url.indexOf(',') + 1));
-
-				// Add images array only if it contains elements
-				if (imageUrls && imageUrls.length > 0 && message.role === 'user') {
-					baseMessage.images = imageUrls;
-				}
-
-				return baseMessage;
-			});
+			.map((message, idx, arr) => ({
+				role: message.role,
+				content: arr.length - 2 !== idx ? message.content : message?.raContent ?? message.content,
+				...(message.files && {
+					images: message.files
+						.filter((file) => file.type === 'image')
+						.map((file) => file.url.slice(file.url.indexOf(',') + 1))
+				})
+			}));
 
 		let lastImageIndex = -1;
 
@@ -348,22 +366,13 @@
 			}
 		});
 
-		const docs = messages
-			.filter((message) => message?.files ?? null)
-			.map((message) =>
-				message.files.filter((item) => item.type === 'doc' || item.type === 'collection')
-			)
-			.flat(1);
-
 		const [res, controller] = await generateChatCompletion(localStorage.token, {
 			model: model,
 			messages: messagesBody,
 			options: {
 				...($settings.options ?? {})
 			},
-			format: $settings.requestFormat ?? undefined,
-			keep_alive: $settings.keepAlive ?? undefined,
-			docs: docs.length > 0 ? docs : undefined
+			format: $settings.requestFormat ?? undefined
 		});
 
 		if (res && res.ok) {
@@ -442,10 +451,10 @@
 														selectedModelfile.title.charAt(0).toUpperCase() +
 														selectedModelfile.title.slice(1)
 												  }`
-												: `${model}`,
+												: `Ollama - ${model}`,
 											{
 												body: responseMessage.content,
-												icon: selectedModelfile?.imageUrl ?? `${WEBUI_BASE_URL}/static/favicon.png`
+												icon: selectedModelfile?.imageUrl ?? '/favicon.png'
 											}
 										);
 									}
@@ -471,7 +480,7 @@
 				}
 
 				if (autoScroll) {
-					scrollToBottom();
+					window.scrollTo({ top: document.body.scrollHeight });
 				}
 			}
 
@@ -496,18 +505,12 @@
 					responseMessage.content = error.error;
 				}
 			} else {
-				toast.error(
-					$i18n.t(`Uh-oh! There was an issue connecting to {{provider}}.`, { provider: 'Ollama' })
-				);
-				responseMessage.content = $i18n.t(`Uh-oh! There was an issue connecting to {{provider}}.`, {
-					provider: 'Ollama'
-				});
+				toast.error(`Uh-oh! There was an issue connecting to Ollama.`);
+				responseMessage.content = `Uh-oh! There was an issue connecting to Ollama.`;
 			}
 
 			responseMessage.error = true;
-			responseMessage.content = $i18n.t(`Uh-oh! There was an issue connecting to {{provider}}.`, {
-				provider: 'Ollama'
-			});
+			responseMessage.content = `Uh-oh! There was an issue connecting to Ollama.`;
 			responseMessage.done = true;
 			messages = messages;
 		}
@@ -516,7 +519,7 @@
 		await tick();
 
 		if (autoScroll) {
-			scrollToBottom();
+			window.scrollTo({ top: document.body.scrollHeight });
 		}
 
 		if (messages.length == 2 && messages.at(1).content !== '') {
@@ -525,73 +528,78 @@
 		}
 	};
 
-	const sendPromptOpenAI = async (model, userPrompt, responseMessageId, _chatId) => {
-		const responseMessage = history.messages[responseMessageId];
-		scrollToBottom();
+	const sendPromptOpenAI = async (model, userPrompt, parentId, _chatId) => {
+		let responseMessageId = uuidv4();
 
-		const docs = messages
-			.filter((message) => message?.files ?? null)
-			.map((message) =>
-				message.files.filter((item) => item.type === 'doc' || item.type === 'collection')
-			)
-			.flat(1);
+		let responseMessage = {
+			parentId: parentId,
+			id: responseMessageId,
+			childrenIds: [],
+			role: 'assistant',
+			content: '',
+			model: model,
+			timestamp: Math.floor(Date.now() / 1000) // Unix epoch
+		};
 
-		console.log(docs);
+		history.messages[responseMessageId] = responseMessage;
+		history.currentId = responseMessageId;
+		if (parentId !== null) {
+			history.messages[parentId].childrenIds = [
+				...history.messages[parentId].childrenIds,
+				responseMessageId
+			];
+		}
 
-		const res = await generateOpenAIChatCompletion(
-			localStorage.token,
-			{
-				model: model.id,
-				stream: true,
-				messages: [
-					$settings.system
+		window.scrollTo({ top: document.body.scrollHeight });
+
+		const res = await generateOpenAIChatCompletion(localStorage.token, {
+			model: model,
+			stream: true,
+			messages: [
+				$settings.system
+					? {
+							role: 'system',
+							content: $settings.system
+					  }
+					: undefined,
+				...messages
+			]
+				.filter((message) => message)
+				.map((message, idx, arr) => ({
+					role: message.role,
+					...(message.files?.filter((file) => file.type === 'image').length > 0 ?? false
 						? {
-								role: 'system',
-								content: $settings.system
+								content: [
+									{
+										type: 'text',
+										text:
+											arr.length - 1 !== idx
+												? message.content
+												: message?.raContent ?? message.content
+									},
+									...message.files
+										.filter((file) => file.type === 'image')
+										.map((file) => ({
+											type: 'image_url',
+											image_url: {
+												url: file.url
+											}
+										}))
+								]
 						  }
-						: undefined,
-					...messages
-				]
-					.filter((message) => message)
-					.map((message, idx, arr) => ({
-						role: message.role,
-						...((message.files?.filter((file) => file.type === 'image').length > 0 ?? false) &&
-						message.role === 'user'
-							? {
-									content: [
-										{
-											type: 'text',
-											text:
-												arr.length - 1 !== idx
-													? message.content
-													: message?.raContent ?? message.content
-										},
-										...message.files
-											.filter((file) => file.type === 'image')
-											.map((file) => ({
-												type: 'image_url',
-												image_url: {
-													url: file.url
-												}
-											}))
-									]
-							  }
-							: {
-									content:
-										arr.length - 1 !== idx ? message.content : message?.raContent ?? message.content
-							  })
-					})),
-				seed: $settings?.options?.seed ?? undefined,
-				stop: $settings?.options?.stop ?? undefined,
-				temperature: $settings?.options?.temperature ?? undefined,
-				top_p: $settings?.options?.top_p ?? undefined,
-				num_ctx: $settings?.options?.num_ctx ?? undefined,
-				frequency_penalty: $settings?.options?.repeat_penalty ?? undefined,
-				max_tokens: $settings?.options?.num_predict ?? undefined,
-				docs: docs.length > 0 ? docs : undefined
-			},
-			model.source === 'litellm' ? `${LITELLM_API_BASE_URL}/v1` : `${OPENAI_API_BASE_URL}`
-		);
+						: {
+								content:
+									arr.length - 1 !== idx ? message.content : message?.raContent ?? message.content
+						  })
+				})),
+			seed: $settings?.options?.seed ?? undefined,
+			stop: $settings?.options?.stop ?? undefined,
+			temperature: $settings?.options?.temperature ?? undefined,
+			top_p: $settings?.options?.top_p ?? undefined,
+			num_ctx: $settings?.options?.num_ctx ?? undefined,
+			frequency_penalty: $settings?.options?.repeat_penalty ?? undefined,
+			max_tokens: $settings?.options?.num_predict ?? undefined
+		});
 
 		if (res && res.ok) {
 			const reader = res.body
@@ -636,7 +644,7 @@
 				if ($settings.notificationEnabled && !document.hasFocus()) {
 					const notification = new Notification(`OpenAI ${model}`, {
 						body: responseMessage.content,
-						icon: `${WEBUI_BASE_URL}/static/favicon.png`
+						icon: '/favicon.png'
 					});
 				}
 
@@ -650,7 +658,7 @@
 				}
 
 				if (autoScroll) {
-					scrollToBottom();
+					window.scrollTo({ top: document.body.scrollHeight });
 				}
 			}
 
@@ -680,18 +688,12 @@
 					}
 				}
 			} else {
-				toast.error(
-					$i18n.t(`Uh-oh! There was an issue connecting to {{provider}}.`, { provider: model })
-				);
-				responseMessage.content = $i18n.t(`Uh-oh! There was an issue connecting to {{provider}}.`, {
-					provider: model
-				});
+				toast.error(`Uh-oh! There was an issue connecting to ${model}.`);
+				responseMessage.content = `Uh-oh! There was an issue connecting to ${model}.`;
 			}
 
 			responseMessage.error = true;
-			responseMessage.content = $i18n.t(`Uh-oh! There was an issue connecting to {{provider}}.`, {
-				provider: model
-			});
+			responseMessage.content = `Uh-oh! There was an issue connecting to ${model}.`;
 			responseMessage.done = true;
 			messages = messages;
 		}
@@ -700,55 +702,18 @@
 		await tick();
 
 		if (autoScroll) {
-			scrollToBottom();
+			window.scrollTo({ top: document.body.scrollHeight });
 		}
 
 		if (messages.length == 2) {
 			window.history.replaceState(history.state, '', `/c/${_chatId}`);
-
-			if ($settings?.titleAutoGenerateModel) {
-				await generateChatTitle(_chatId, userPrompt);
-			} else {
-				await setChatTitle(_chatId, userPrompt);
-			}
+			await setChatTitle(_chatId, userPrompt);
 		}
 	};
 
 	const stopResponse = () => {
 		stopResponseFlag = true;
 		console.log('stopResponse');
-	};
-
-	const continueGeneration = async () => {
-		console.log('continueGeneration');
-		const _chatId = JSON.parse(JSON.stringify($chatId));
-
-		if (messages.length != 0 && messages.at(-1).done == true) {
-			const responseMessage = history.messages[history.currentId];
-			responseMessage.done = false;
-			await tick();
-
-			const model = $models.filter((m) => m.id === responseMessage.model).at(0);
-
-			if (model) {
-				if (model?.external) {
-					await sendPromptOpenAI(
-						model,
-						history.messages[responseMessage.parentId].content,
-						responseMessage.id,
-						_chatId
-					);
-				} else
-					await sendPromptOllama(
-						model,
-						history.messages[responseMessage.parentId].content,
-						responseMessage.id,
-						_chatId
-					);
-			}
-		} else {
-			toast.error($i18n.t(`Model {{modelId}} not found`, { modelId }));
-		}
 	};
 
 	const regenerateResponse = async () => {
@@ -766,15 +731,7 @@
 
 	const generateChatTitle = async (_chatId, userPrompt) => {
 		if ($settings.titleAutoGenerate ?? true) {
-			const title = await generateTitle(
-				localStorage.token,
-				$settings?.titleGenerationPrompt ??
-					$i18n.t(
-						"Create a concise, 3-5 word phrase as a header for the following query, strictly adhering to the 3-5 word limit and avoiding the use of the word 'title':"
-					) + ' {{prompt}}',
-				$settings?.titleAutoGenerateModel ?? selectedModels[0],
-				userPrompt
-			);
+			const title = await generateTitle(localStorage.token, selectedModels[0], userPrompt);
 
 			if (title) {
 				await setChatTitle(_chatId, title);
@@ -828,77 +785,61 @@
 	});
 </script>
 
-<svelte:head>
-	<title>
-		{title
-			? `${title.length > 30 ? `${title.slice(0, 30)}...` : title} | ${$WEBUI_NAME}`
-			: `${$WEBUI_NAME}`}
-	</title>
-</svelte:head>
+<svelte:window
+	on:scroll={(e) => {
+		autoScroll = window.innerHeight + window.scrollY >= document.body.offsetHeight - 40;
+	}}
+/>
 
 {#if loaded}
-	<div class="min-h-screen max-h-screen w-full flex flex-col">
-		<Navbar
-			{title}
-			shareEnabled={messages.length > 0}
-			initNewChat={async () => {
-				if (currentRequestId !== null) {
-					await cancelChatCompletion(localStorage.token, currentRequestId);
-					currentRequestId = null;
-				}
+	<Navbar
+		{title}
+		shareEnabled={messages.length > 0}
+		initNewChat={async () => {
+			if (currentRequestId !== null) {
+				await cancelChatCompletion(localStorage.token, currentRequestId);
+				currentRequestId = null;
+			}
 
-				goto('/');
-			}}
-			{tags}
-			{addTag}
-			{deleteTag}
-		/>
-		<div class="flex flex-col flex-auto">
-			<div
-				class=" pb-2.5 flex flex-col justify-between w-full flex-auto overflow-auto h-0"
-				id="messages-container"
-				bind:this={messagesContainerElement}
-				on:scroll={(e) => {
-					autoScroll =
-						messagesContainerElement.scrollHeight - messagesContainerElement.scrollTop <=
-						messagesContainerElement.clientHeight + 5;
-				}}
-			>
-				<div
-					class="{$settings?.fullScreenMode ?? null
-						? 'max-w-full'
-						: 'max-w-2xl md:px-0'} mx-auto w-full px-4"
-				>
-					<ModelSelector bind:selectedModels />
-				</div>
-
-				<div class=" h-full w-full flex flex-col py-8">
-					<Messages
-						chatId={$chatId}
-						{selectedModels}
-						{selectedModelfiles}
-						{processing}
-						bind:history
-						bind:messages
-						bind:autoScroll
-						bottomPadding={files.length > 0}
-						{sendPrompt}
-						{continueGeneration}
-						{regenerateResponse}
-					/>
-				</div>
+			goto('/');
+		}}
+		{tags}
+		{addTag}
+		{deleteTag}
+	/>
+	<div class="min-h-screen w-full flex justify-center">
+		<div class=" py-2.5 flex flex-col justify-between w-full">
+			<div class="max-w-2xl mx-auto w-full px-3 md:px-0 mt-10">
+				<ModelSelector
+					bind:selectedModels
+					disabled={messages.length > 0 && !selectedModels.includes('')}
+				/>
 			</div>
 
-			<MessageInput
-				bind:files
-				bind:prompt
-				bind:autoScroll
-				suggestionPrompts={selectedModelfile?.suggestionPrompts ??
-					$config.default_prompt_suggestions}
-				{messages}
-				{submitPrompt}
-				{stopResponse}
-			/>
+			<div class=" h-full mt-10 mb-32 w-full flex flex-col">
+				<Messages
+					chatId={$chatId}
+					{selectedModels}
+					{selectedModelfiles}
+					{processing}
+					bind:history
+					bind:messages
+					bind:autoScroll
+					bottomPadding={files.length > 0}
+					{sendPrompt}
+					{regenerateResponse}
+				/>
+			</div>
 		</div>
+
+		<MessageInput
+			bind:files
+			bind:prompt
+			bind:autoScroll
+			suggestionPrompts={selectedModelfile?.suggestionPrompts ?? $config.default_prompt_suggestions}
+			{messages}
+			{submitPrompt}
+			{stopResponse}
+		/>
 	</div>
 {/if}

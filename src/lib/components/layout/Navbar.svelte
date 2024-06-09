@@ -1,19 +1,17 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
-	import { toast } from 'svelte-sonner';
+	import toast from 'svelte-french-toast';
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
 
 	import { getChatById } from '$lib/apis/chats';
-	import { WEBUI_NAME, chatId, modelfiles, settings } from '$lib/stores';
+	import { chatId, modelfiles } from '$lib/stores';
 	import ShareChatModal from '../chat/ShareChatModal.svelte';
 	import TagInput from '../common/Tags/TagInput.svelte';
 	import Tags from '../common/Tags.svelte';
-
-	const i18n = getContext('i18n');
+	import { WEBUI_NAME } from '$lib/constants';
 
 	export let initNewChat: Function;
-	export let title: string = $WEBUI_NAME;
+	export let title: string = WEBUI_NAME;
 	export let shareEnabled: boolean = false;
 
 	export let tags = [];
@@ -29,9 +27,9 @@
 		const chat = (await getChatById(localStorage.token, $chatId)).chat;
 		console.log('share', chat);
 
-		toast.success($i18n.t('Redirecting you to OpenWebUI Community'));
-		const url = 'https://openwebui.com';
-		// const url = 'http://localhost:5173';
+		toast.success('Redirecting you to OllamaHub');
+		// const url = 'https://ollamahub.com';
+		const url = 'http://localhost:5173';
 
 		const tab = await window.open(`${url}/chats/upload`, '_blank');
 		window.addEventListener(
@@ -71,13 +69,9 @@
 <ShareChatModal bind:show={showShareChatModal} {downloadChat} {shareChat} />
 <nav
 	id="nav"
-	class=" sticky py-2.5 top-0 flex flex-row justify-center bg-white/95 dark:bg-gray-900/90 dark:text-gray-200 backdrop-blur-xl z-30"
+	class=" fixed py-2.5 top-0 flex flex-row justify-center bg-white/95 dark:bg-gray-900/90 dark:text-gray-200 backdrop-blur-xl w-screen z-30"
 >
-	<div
-		class=" flex {$settings?.fullScreenMode ?? null
-			? 'max-w-full'
-			: 'max-w-3xl'}  w-full mx-auto px-3"
-	>
+	<div class=" flex max-w-3xl w-full mx-auto px-3">
 		<div class="flex items-center w-full max-w-full">
 			<div class="pr-2 self-start">
 				<button
@@ -104,7 +98,7 @@
 			</div>
 			<div class=" flex-1 self-center font-medium line-clamp-1">
 				<div>
-					{title != '' ? title : $WEBUI_NAME}
+					{title != '' ? title : WEBUI_NAME}
 				</div>
 			</div>
 

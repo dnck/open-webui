@@ -96,10 +96,6 @@ async def get_doc_by_name(name: str, user=Depends(get_current_user)):
 ############################
 
 
-class TagItem(BaseModel):
-    name: str
-
-
 class TagDocumentForm(BaseModel):
     name: str
     tags: List[dict]
